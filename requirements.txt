@@ -2,4 +2,5 @@ streamlit
 langflow
 openai
 chromadb
+sqlite3
 
