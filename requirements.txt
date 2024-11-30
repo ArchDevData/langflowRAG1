@@ -2,5 +2,5 @@ streamlit
 langflow
 openai
 chromadb
-sqlite3
+pysqlite3-binary
 
