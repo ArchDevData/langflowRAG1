@@ -32,7 +32,7 @@ TWEAKS = {
         "collection_name": "HEIC_Docs",
         "limit": None,
         "number_of_results": 5,
-        "persist_directory": "D:/OneDrive - Larsen & Toubro/All_Work/GenAI/RAG_Langflow/Chromadb",
+        "persist_directory": "./Chromadb",
         "search_query": "",
         "search_type": "Similarity"
     },
@@ -59,7 +59,7 @@ TWEAKS = {
         "collection_name": "HEIC_Docs",
         "limit": None,
         "number_of_results": 5,
-        "persist_directory": "D:/OneDrive - Larsen & Toubro/All_Work/GenAI/RAG_Langflow/Chromadb",
+        "persist_directory": "./Chromadb",
         "search_query": "",
         "search_type": "Similarity"
     },
