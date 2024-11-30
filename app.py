@@ -32,7 +32,7 @@ TWEAKS = {
         "collection_name": "HEIC_Docs",
         "limit": None,
         "number_of_results": 5,
-        "persist_directory": "./Chromadb",
+        "persist_directory": "./tmp/Chromadb",
         "search_query": "",
         "search_type": "Similarity"
     },
@@ -59,7 +59,7 @@ TWEAKS = {
         "collection_name": "HEIC_Docs",
         "limit": None,
         "number_of_results": 5,
-        "persist_directory": "./Chromadb",
+        "persist_directory": "./tmp/Chromadb",
         "search_query": "",
         "search_type": "Similarity"
     },
