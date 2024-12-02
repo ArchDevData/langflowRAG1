@@ -1,8 +1,5 @@
 import streamlit as st
 from langflow.load import run_flow_from_json
-import sys
-import pysqlite3 as sqlite3
-sys.modules["sqlite3"] = sqlite3
 
 # Define your Langflow tweaks (as provided)
 TWEAKS = {
@@ -123,29 +120,50 @@ TWEAKS = {
     }
 }
 
-# Set up Streamlit frontend
-st.title("Langflow Chatbot")
-st.write("Welcome! Ask me anything, and I'll fetch answers based on the documents and context.")
+# Check if the flow file exists
+if not os.path.exists("./LangRAG.json"):
+    st.error("Error: Flow file 'LangRAG.json' not found. Please ensure it is in the correct directory.")
+else:
+    # Streamlit UI
+    st.title("Langflow Chatbot")
+    st.write("Welcome! Ask me anything, and I'll fetch answers based on the documents and context.")
 
-# Capture user input
-user_input = st.text_input("You:", "")
+    # Generate a unique session ID for tracking
+    session_id = str(uuid.uuid4())
 
-# Check if user has provided input
-if user_input:
-    # Update TWEAKS with user input
-    TWEAKS["ChatInput-6Lgre"]["input_value"] = user_input
-    
-    # Execute Langflow logic to get response based on the input and tweaks
-    try:
-        result = run_flow_from_json(flow="./LangRAG.json",
-                                    input_value=user_input,
-                                    tweaks=TWEAKS)
-        
-        # Display the machine's response
-        if "ChatOutput-UJU7A" in result:
-            st.write(f"Assistant: {result['ChatOutput-UJU7A']['data_template'].format(text=result['ChatOutput-UJU7A']['input_value'])}")
-        else:
-            st.write("Assistant: Sorry, I couldn't generate an answer.")
-    except Exception as e:
-        st.write(f"Error: {str(e)}")
+    # Capture user input
+    user_input = st.text_input("You:", "")
 
+    # Validate input
+    if user_input.strip() == "":
+        st.warning("Please enter a valid input.")
+    elif st.button("Submit"):
+        with st.spinner("Processing your input..."):
+            try:
+                # Use a copy of TWEAKS for each request
+                tweaks_copy = copy.deepcopy(TWEAKS)
+                tweaks_copy["ChatInput-6Lgre"]["input_value"] = user_input
+                tweaks_copy["ChatInput-6Lgre"]["session_id"] = session_id
+                tweaks_copy["ChatOutput-UJU7A"]["session_id"] = session_id
+
+                # Run the Langflow flow
+                result = run_flow_from_json(flow="./LangRAG.json", input_value=user_input, tweaks=tweaks_copy)
+
+                # Debugging: Display the result object (optional)
+                st.write("Debugging Result:", result)
+
+                # Check result structure and display output
+                if "ChatOutput-UJU7A" in result and "input_value" in result["ChatOutput-UJU7A"]:
+                    response = result["ChatOutput-UJU7A"]["data_template"].format(
+                        text=result["ChatOutput-UJU7A"]["input_value"]
+                    )
+                    st.write(f"Assistant: {response}")
+                else:
+                    st.write("Assistant: Sorry, I couldn't generate an answer.")
+            except Exception as e:
+                st.error("An error occurred while processing your request.")
+                st.text(traceback.format_exc())
+
+    # Validate Azure API keys and endpoints
+    if not TWEAKS["AzureOpenAIEmbeddings-GS6Lh"]["api_key"] or not TWEAKS["AzureOpenAIModel-qhSVT"]["api_key"]:
+        st.error("Azure API keys are missing or invalid. Please update the TWEAKS dictionary.")
