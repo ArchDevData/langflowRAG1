@@ -14,7 +14,7 @@ TWEAKS = {
         "input_value": "",
         "sender": "User",
         "sender_name": "Archi",
-        "session_id": "",  # To be dynamically set
+        "session_id": "",
         "should_store_message": True
     },
     "ChatOutput-UJU7A": {
@@ -22,12 +22,13 @@ TWEAKS = {
         "input_value": "",
         "sender": "Machine",
         "sender_name": "My friend",
-        "session_id": "",  # To be dynamically set
+        "session_id": "",
         "should_store_message": True
     },
     "File-7ysYy": {
-        "path": "",  # To be dynamically set
-        "silent_errors": False
+        "path": "",
+        "silent_errors": False,
+        "session_id": ""
     }
 }
 
@@ -37,7 +38,7 @@ st.write("Welcome! Upload a file to add context, then ask your question.")
 
 # Initialize session ID
 if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())  # Generate a unique session ID
+    st.session_state.session_id = str(uuid.uuid4())
 
 # File uploader
 uploaded_file = st.file_uploader(
@@ -56,7 +57,7 @@ if uploaded_file:
 
     # Update the file path and session ID in TWEAKS
     TWEAKS["File-7ysYy"]["path"] = temp_file_path
-    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id  # Add session ID
+    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id
     st.success(f"File '{uploaded_file.name}' uploaded and linked successfully.")
 
 # Capture user input
@@ -69,17 +70,17 @@ if user_input:
     TWEAKS["ChatInput-6Lgre"]["session_id"] = st.session_state.session_id
     TWEAKS["ChatOutput-UJU7A"]["session_id"] = st.session_state.session_id
 
+    # Debugging output
+    st.write("Debugging TWEAKS:", TWEAKS)
+
     # Ensure a file is linked
     if not TWEAKS["File-7ysYy"]["path"]:
         st.warning("Please upload a file before asking a question.")
     else:
-        # Execute Langflow logic to get a response
         try:
             result = run_flow_from_json(
                 flow="./LangRAG.json", input_value=user_input, tweaks=TWEAKS
             )
-
-            # Display the assistant's response
             if "ChatOutput-UJU7A" in result:
                 st.write(
                     f"Assistant: {result['ChatOutput-UJU7A']['data_template'].format(text=result['ChatOutput-UJU7A']['input_value'])}"
