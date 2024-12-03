@@ -14,7 +14,7 @@ TWEAKS = {
         "input_value": "",
         "sender": "User",
         "sender_name": "Archi",
-        "session_id": "",
+        "session_id": "",  # To be dynamically set
         "should_store_message": True
     },
     "ChatOutput-UJU7A": {
@@ -22,11 +22,11 @@ TWEAKS = {
         "input_value": "",
         "sender": "Machine",
         "sender_name": "My friend",
-        "session_id": "",
+        "session_id": "",  # To be dynamically set
         "should_store_message": True
     },
     "File-7ysYy": {
-        "path": "",
+        "path": "",  # To be dynamically set
         "silent_errors": False
     }
 }
@@ -34,6 +34,10 @@ TWEAKS = {
 # Streamlit Frontend
 st.title("Langflow Chatbot with File Upload")
 st.write("Welcome! Upload a file to add context, then ask your question.")
+
+# Initialize session ID
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())  # Generate a unique session ID
 
 # File uploader
 uploaded_file = st.file_uploader(
@@ -49,17 +53,14 @@ if uploaded_file:
     temp_file_path = os.path.join(temp_dir, uploaded_file.name)
     with open(temp_file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    
-    # Update the file path in TWEAKS
+
+    # Update the file path and session ID in TWEAKS
     TWEAKS["File-7ysYy"]["path"] = temp_file_path
+    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id  # Add session ID
     st.success(f"File '{uploaded_file.name}' uploaded and linked successfully.")
 
 # Capture user input
 user_input = st.text_input("You:", "")
-
-# Initialize session ID
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
 
 # Check if user input is provided
 if user_input:
