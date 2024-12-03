@@ -12,7 +12,7 @@ TWEAKS = {
     "ChatInput-6Lgre": {
         "files": "",
         "input_value": "",
-        "sender": "User",
+        "sender": "User ",
         "sender_name": "Archi",
         "session_id": "",  # To be dynamically set
         "should_store_message": True,
@@ -28,6 +28,7 @@ TWEAKS = {
     "File-7ysYy": {
         "path": "",  # To be dynamically set
         "silent_errors": False,
+        "session_id": "",  # Add session_id here
     },
 }
 
@@ -67,6 +68,7 @@ if user_input:
     TWEAKS["ChatInput-6Lgre"]["input_value"] = user_input
     TWEAKS["ChatInput-6Lgre"]["session_id"] = st.session_state.session_id
     TWEAKS["ChatOutput-UJU7A"]["session_id"] = st.session_state.session_id
+    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id  # Ensure session_id is set for File
 
     # Ensure a file is linked
     if not TWEAKS["File-7ysYy"]["path"]:
