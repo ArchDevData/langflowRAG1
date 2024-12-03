@@ -2,18 +2,19 @@ import streamlit as st
 from langflow.load import run_flow_from_json
 import sys
 import pysqlite3 as sqlite3
-import uuid  # To generate a unique session ID
+import uuid
+import os  # For file and path handling
 
 sys.modules["sqlite3"] = sqlite3
 
-# Define your Langflow tweaks (as provided)
+# Define Langflow tweaks
 TWEAKS = {
     "ChatInput-6Lgre": {
         "files": "",
-        "input_value": "",  # Default empty, will update with user input
+        "input_value": "",
         "sender": "User",
         "sender_name": "Archi",
-        "session_id": "",  # To be set dynamically
+        "session_id": "",
         "should_store_message": True
     },
     "ChatOutput-UJU7A": {
@@ -21,25 +22,31 @@ TWEAKS = {
         "input_value": "",
         "sender": "Machine",
         "sender_name": "My friend",
-        "session_id": "",  # To be set dynamically
+        "session_id": "",
         "should_store_message": True
     },
     "File-7ysYy": {
-        "path": "",  # To be dynamically set
+        "path": "",
         "silent_errors": False
     }
 }
 
-# Set up Streamlit frontend
-st.title("Langflow Chatbot")
-st.write("Welcome! Ask me anything, and I'll fetch answers based on the documents and context.")
+# Streamlit Frontend
+st.title("Langflow Chatbot with File Upload")
+st.write("Welcome! Upload a file to add context, then ask your question.")
 
 # File uploader
-uploaded_file = st.file_uploader("Upload a file to include in the chatbot context:", type=["txt", "pdf", "docx"])
+uploaded_file = st.file_uploader(
+    "Upload a file to include in the chatbot context:", type=["txt", "pdf", "docx"]
+)
 
 if uploaded_file:
-    # Save the uploaded file to a temporary directory
-    temp_file_path = f"./tmp/{uploaded_file.name}"
+    # Create a temporary directory for storing files
+    temp_dir = "./tmp"
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Save the uploaded file
+    temp_file_path = os.path.join(temp_dir, uploaded_file.name)
     with open(temp_file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     
@@ -52,25 +59,31 @@ user_input = st.text_input("You:", "")
 
 # Initialize session ID
 if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())  # Generate unique session ID
+    st.session_state.session_id = str(uuid.uuid4())
 
-# Check if user has provided input
+# Check if user input is provided
 if user_input:
     # Update TWEAKS with user input and session ID
     TWEAKS["ChatInput-6Lgre"]["input_value"] = user_input
     TWEAKS["ChatInput-6Lgre"]["session_id"] = st.session_state.session_id
     TWEAKS["ChatOutput-UJU7A"]["session_id"] = st.session_state.session_id
 
-    # Execute Langflow logic to get response based on the input and tweaks
-    try:
-        result = run_flow_from_json(flow="./LangRAG.json",
-                                    input_value=user_input,
-                                    tweaks=TWEAKS)
+    # Ensure a file is linked
+    if not TWEAKS["File-7ysYy"]["path"]:
+        st.warning("Please upload a file before asking a question.")
+    else:
+        # Execute Langflow logic to get a response
+        try:
+            result = run_flow_from_json(
+                flow="./LangRAG.json", input_value=user_input, tweaks=TWEAKS
+            )
 
-        # Display the machine's response
-        if "ChatOutput-UJU7A" in result:
-            st.write(f"Assistant: {result['ChatOutput-UJU7A']['data_template'].format(text=result['ChatOutput-UJU7A']['input_value'])}")
-        else:
-            st.write("Assistant: Sorry, I couldn't generate an answer.")
-    except Exception as e:
-        st.write(f"Error: {str(e)}")
+            # Display the assistant's response
+            if "ChatOutput-UJU7A" in result:
+                st.write(
+                    f"Assistant: {result['ChatOutput-UJU7A']['data_template'].format(text=result['ChatOutput-UJU7A']['input_value'])}"
+                )
+            else:
+                st.write("Assistant: Sorry, I couldn't generate an answer.")
+        except Exception as e:
+            st.error(f"Error occurred: {str(e)}")
