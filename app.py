@@ -1,6 +1,7 @@
 import streamlit as st
 from langflow.load import run_flow_from_json
 from typing import Optional
+import uuid  # To generate a unique session_id
 
 # Tweaks for LangFlow
 TWEAKS = {
@@ -23,6 +24,9 @@ BASE_API_URL = "http://your-api-url-here"  # Define your base API URL
 
 def run_flow(message: str,
              endpoint: str,
+             session_id: str,
+             sender: str,
+             sender_name: str,
              output_type: str = "chat",
              input_type: str = "chat",
              tweaks: Optional[dict] = None,
@@ -32,6 +36,9 @@ def run_flow(message: str,
 
     :param message: The message to send to the flow
     :param endpoint: The ID or the endpoint name of the flow
+    :param session_id: A unique session ID to track the conversation
+    :param sender: The sender of the message (e.g., email or identifier)
+    :param sender_name: The sender's name
     :param tweaks: Optional tweaks to customize the flow
     :return: The JSON response from the flow
     """
@@ -41,14 +48,18 @@ def run_flow(message: str,
         "input_value": message,
         "output_type": output_type,
         "input_type": input_type,
+        "session_id": session_id,
+        "sender": sender,
+        "sender_name": sender_name
     }
     
-    headers = {}
     if tweaks:
         payload["tweaks"] = tweaks
     if api_key:
         headers = {"x-api-key": api_key}
-        
+    else:
+        headers = {}
+
     try:
         response = requests.post(api_url, json=payload, headers=headers)
         response.raise_for_status()  # Raises HTTPError for bad responses
@@ -61,6 +72,13 @@ def chat(prompt: str):
     with current_chat_message:
         # Block input to prevent sending messages while AI is responding
         st.session_state.disabled = True
+
+        # Generate unique session_id if not already in session state
+        if "session_id" not in st.session_state:
+            st.session_state.session_id = str(uuid.uuid4())
+
+        sender_email = "user_email@example.com"  # Replace with actual sender email or ID
+        sender_name = "User Name"  # Replace with actual sender name
 
         # Add user message to chat history
         st.session_state.messages.append(("human", prompt))
@@ -78,10 +96,16 @@ def chat(prompt: str):
             # Pass the query as a string (not a dictionary)
             inputs = query  # Directly pass the query as the input_value
 
-            # Call the LangFlow API and retrieve the response
+            # Call the LangFlow API with session_id, sender, and sender_name
             try:
-                # Modify flow execution
-                result = run_flow_from_json(flow="./LangRAG.json", input_value=inputs, tweaks=TWEAKS)
+                result = run_flow_from_json(
+                    flow="./LangRAG.json", 
+                    input_value=inputs, 
+                    tweaks=TWEAKS,
+                    session_id=st.session_state.session_id,
+                    sender=sender_email,  # Add the sender info
+                    sender_name=sender_name  # Add the sender name
+                )
                 
                 # Check if the response contains the desired output
                 if "ChatOutput-UJU7A" in result:
