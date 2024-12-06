@@ -64,7 +64,7 @@ def chat(prompt: str):
       inputs = {"question": query}
 
       # output = run_flow(inputs, flow_id=FLOW_ID, tweaks=TWEAKS)
-      flow = load_flow_from_json(flow="RAG_app_demo_2.json", tweaks=TWEAKS)
+      flow = load_flow_from_json(flow="LangRAG.json", tweaks=TWEAKS)
       output = flow(inputs)
       print("output from the model is: ")
       print(output)
