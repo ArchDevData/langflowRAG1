@@ -112,6 +112,9 @@ def chat(prompt: str):
     with st.chat_message("human"):
         st.markdown(prompt)
 
+    # Default value for output to avoid UnboundLocalError
+    output = "Sorry, something went wrong, and I couldn't generate an answer."
+
     # Generate the input string for the AI
     with st.chat_message("ai"):
         history = "\n".join([f"{role}: {msg}" for role, msg in st.session_state.messages])
@@ -146,13 +149,13 @@ def chat(prompt: str):
             # Extract and display AI output
             if "ChatOutput-UJU7A" in result:
                 output = result["ChatOutput-UJU7A"]["data_template"].format(text=result["ChatOutput-UJU7A"]["input_value"])
-            else:
-                output = "Sorry, I couldn't generate an answer."
             
-            st.markdown(output)
-
         except Exception as e:
             st.markdown(f"Error occurred: {str(e)}")
+
+    # Display AI response in the chat
+    with st.chat_message("ai"):
+        st.markdown(output)
 
     # Log AI response to chat history
     st.session_state.messages.append(("ai", output))
