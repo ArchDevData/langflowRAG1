@@ -9,111 +9,31 @@ sys.modules["sqlite3"] = sqlite3
 
 # Define Langflow tweaks
 TWEAKS = {
-    "ChatInput-6Lgre": {
-        "files": "",
-        "input_value": "",
-        "sender": "User",
-        "sender_name": "Archi",
-        "session_id": "",
-        "should_store_message": True
-    },
-    "ChatOutput-UJU7A": {
-        "data_template": "{text}",
-        "input_value": "",
-        "sender": "Machine",
-        "sender_name": "My friend",
-        "session_id": "",
-        "should_store_message": True
-    },
-    "TextInput-AeCmf": {
-        "input_value": "Test model"
-    },
-    "Chroma-LAhGk": {
-        "allow_duplicates": False,
-        "chroma_server_cors_allow_origins": "",
-        "chroma_server_grpc_port": None,
-        "chroma_server_host": "",
-        "chroma_server_http_port": None,
-        "chroma_server_ssl_enabled": False,
-        "collection_name": "HEIC_Docs",
-        "limit": None,
-        "number_of_results": 5,
-        "persist_directory": "./tmp/Chromadb",
-        "search_query": "",
-        "search_type": "Similarity"
-    },
-    "SplitText-rbRaI": {
-        "chunk_overlap": 200,
-        "chunk_size": 1000,
-        "separator": "\n"
-    },
-    "Memory-w84zU": {
-        "n_messages": 100,
-        "order": "Ascending",
-        "sender": "Machine and User",
-        "sender_name": "",
-        "session_id": "",
-        "template": "{sender_name}: {text}"
-    },
-    "Chroma-gNlPk": {
-        "allow_duplicates": False,
-        "chroma_server_cors_allow_origins": "",
-        "chroma_server_grpc_port": None,
-        "chroma_server_host": "",
-        "chroma_server_http_port": None,
-        "chroma_server_ssl_enabled": False,
-        "collection_name": "HEIC_Docs",
-        "limit": None,
-        "number_of_results": 5,
-        "persist_directory": "./tmp/Chromadb",
-        "search_query": "",
-        "search_type": "Similarity"
-    },
-    "ParseData-oI1Nx": {
-        "sep": "\n",
-        "template": "{text}"
-    },
-    "Prompt-s8d9d": {
-        "template": "Answer user's questions based on the context and history below:\n\n---\n\n{Context}\n\n---\nChat history:\n{History}\n\nQuestion:\n{Question}\n\nAnswer:",
-        "History": "",
-        "Question": "",
-        "Context": ""
-    },
-    "TextOutput-BY5DW": {
-        "input_value": ""
-    },
-    "AzureOpenAIEmbeddings-GS6Lh": {
-        "api_key": "33d36b4d510a4d1583bad02e4a0c2de2",
-        "api_version": "2023-05-15",
-        "azure_deployment": "text-embedding-ada-002",
-        "azure_endpoint": "https://azopenai-use-datasrv-dev-openai-001.openai.azure.com/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-05-15",
-        "dimensions": None
-    },
-    "AzureOpenAIModel-qhSVT": {
-        "api_key": "33d36b4d510a4d1583bad02e4a0c2de2",
-        "api_version": "2023-03-15-preview",
-        "azure_deployment": "gpt-4o--",
-        "azure_endpoint": "https://azopenai-use-datasrv-dev-openai-001.openai.azure.com/openai/deployments/gpt-4o--/chat/completions?api-version=2023-03-15-preview",
-        "input_value": "",
-        "max_tokens": None,
-        "stream": False,
-        "system_message": "",
-        "temperature": 0.7
-    },
-    "File-7ysYy": {
-        "path": "",
-        "silent_errors": False,
-        "session_id": ""
-    }
+    "ChatInput-6Lgre": {},
+    "ChatOutput-UJU7A": {},
+    "TextInput-AeCmf": {},
+    "Chroma-LAhGk": {},
+    "SplitText-rbRaI": {},
+    "Memory-w84zU": {},
+    "Chroma-gNlPk": {},
+    "ParseData-oI1Nx": {},
+    "Prompt-s8d9d": {},
+    "TextOutput-BY5DW": {},
+    "AzureOpenAIEmbeddings-GS6Lh": {},
+    "AzureOpenAIModel-qhSVT": {},
+    "File-7ysYy": {}
 }
 
 # Streamlit Frontend
-st.title("Langflow Chatbot with File Upload")
+st.title("Langflow Chatbot with Chat History and File Upload")
 st.write("Welcome! Upload a file to add context, then ask your question.")
 
-# Initialize session ID
+# Initialize session states
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # Store chat history (user and assistant messages)
 
 # File uploader
 uploaded_file = st.file_uploader(
@@ -135,33 +55,48 @@ if uploaded_file:
     TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id
     st.success(f"File '{uploaded_file.name}' uploaded and linked successfully.")
 
-# Capture user input
+# Display chat history
+st.markdown("### Chat History")
+for role, message in st.session_state.messages:
+    if role == "user":
+        st.markdown(f"**You:** {message}")
+    else:
+        st.markdown(f"**Assistant:** {message}")
+
+# Input box for user query
 user_input = st.text_input("You:", "")
 
-# Check if user input is provided
+# Process user input
 if user_input:
     # Update TWEAKS with user input and session ID
     TWEAKS["ChatInput-6Lgre"]["input_value"] = user_input
     TWEAKS["ChatInput-6Lgre"]["session_id"] = st.session_state.session_id
     TWEAKS["ChatOutput-UJU7A"]["session_id"] = st.session_state.session_id
-    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id  # Ensure session_id is set for File
+    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id
 
-    # Debugging output
-    st.write("Debugging TWEAKS:", TWEAKS)
+    # Add user message to chat history
+    st.session_state.messages.append(("user", user_input))
 
-    # Ensure a file is linked
+    # Ensure a file is linked before processing
     if not TWEAKS["File-7ysYy"]["path"]:
         st.warning("Please upload a file before asking a question.")
     else:
         try:
+            # Run the Langflow flow
             result = run_flow_from_json(
                 flow="./LangRAG.json", input_value=user_input, tweaks=TWEAKS
             )
+            
+            # Extract the assistant's response
             if "ChatOutput-UJU7A" in result:
-                st.write(
-                    f"Assistant: {result['ChatOutput-UJU7A']['data_template'].format(text=result['ChatOutput-UJU7A']['input_value'])}"
+                response = result["ChatOutput-UJU7A"]["data_template"].format(
+                    text=result["ChatOutput-UJU7A"]["input_value"]
                 )
+                st.session_state.messages.append(("assistant", response))
+                st.write(f"**Assistant:** {response}")
             else:
-                st.write("Assistant: Sorry, I couldn't generate an answer.")
+                response = "Sorry, I couldn't generate an answer."
+                st.session_state.messages.append(("assistant", response))
+                st.write(f"**Assistant:** {response}")
         except Exception as e:
             st.error(f"Error occurred: {str(e)}")
