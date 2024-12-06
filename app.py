@@ -48,6 +48,7 @@ def run_flow(message: str,
         "input_value": message,
         "output_type": output_type,
         "input_type": input_type,
+        # Include session_id only in specific components
         "session_id": session_id,
         "sender": sender,
         "sender_name": sender_name
@@ -98,18 +99,26 @@ def chat(prompt: str):
 
             # Add session and sender details in the tweaks dictionary
             tweaks = {
-                "session_id": st.session_state.session_id,
+                "session_id": st.session_state.session_id,  # Only for relevant components
                 "sender": sender_email,  # Add the sender info
                 "sender_name": sender_name,  # Add the sender name
                 **TWEAKS  # Include any other tweaks
             }
 
-            # Call the LangFlow API with session_id, sender, and sender_name inside tweaks
+            # Modify the flow components to include session_id where needed
+            flow_data = {
+                "ChatInput-6Lgre": {"session_id": st.session_state.session_id, **TWEAKS["ChatInput-6Lgre"]},
+                "ChatOutput-UJU7A": {"session_id": st.session_state.session_id, **TWEAKS["ChatOutput-UJU7A"]},
+                "Memory-w84zU": {"session_id": st.session_state.session_id, **TWEAKS["Memory-w84zU"]},
+                **TWEAKS
+            }
+
+            # Call the LangFlow API with session_id only in relevant components
             try:
                 result = run_flow_from_json(
                     flow="./LangRAG.json", 
                     input_value=inputs, 
-                    tweaks=tweaks
+                    tweaks=flow_data  # Passing the updated tweaks with session_id for relevant components
                 )
                 
                 # Check if the response contains the desired output
