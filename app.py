@@ -96,15 +96,20 @@ def chat(prompt: str):
             # Pass the query as a string (not a dictionary)
             inputs = query  # Directly pass the query as the input_value
 
-            # Call the LangFlow API with session_id, sender, and sender_name
+            # Add session and sender details in the tweaks dictionary
+            tweaks = {
+                "session_id": st.session_state.session_id,
+                "sender": sender_email,  # Add the sender info
+                "sender_name": sender_name,  # Add the sender name
+                **TWEAKS  # Include any other tweaks
+            }
+
+            # Call the LangFlow API with session_id, sender, and sender_name inside tweaks
             try:
                 result = run_flow_from_json(
                     flow="./LangRAG.json", 
                     input_value=inputs, 
-                    tweaks=TWEAKS,
-                    session_id=st.session_state.session_id,
-                    sender=sender_email,  # Add the sender info
-                    sender_name=sender_name  # Add the sender name
+                    tweaks=tweaks
                 )
                 
                 # Check if the response contains the desired output
