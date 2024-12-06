@@ -1,132 +1,126 @@
 import streamlit as st
 from langflow.load import run_flow_from_json
-import sys
-import pysqlite3 as sqlite3
-import uuid
-import os  # For file and path handling
+from typing import Optional
 
-sys.modules["sqlite3"] = sqlite3
-
-# Define LangFlow tweaks
 TWEAKS = {
-    "ChatInput-6Lgre": {},
-    "ChatOutput-UJU7A": {},
-    "TextInput-AeCmf": {},
-    "Chroma-LAhGk": {},
-    "SplitText-rbRaI": {},
-    "Memory-w84zU": {},
-    "Chroma-gNlPk": {},
-    "ParseData-oI1Nx": {},
-    "Prompt-s8d9d": {},
-    "TextOutput-BY5DW": {},
-    "AzureOpenAIEmbeddings-GS6Lh": {},
-    "AzureOpenAIModel-qhSVT": {},
-    "File-7ysYy": {}
+  "ChatInput-6Lgre": {},
+  "ChatOutput-UJU7A": {},
+  "TextInput-AeCmf": {},
+  "Chroma-LAhGk": {},
+  "SplitText-rbRaI": {},
+  "Memory-w84zU": {},
+  "Chroma-gNlPk": {},
+  "ParseData-oI1Nx": {},
+  "Prompt-s8d9d": {},
+  "TextOutput-BY5DW": {},
+  "AzureOpenAIEmbeddings-GS6Lh": {},
+  "AzureOpenAIModel-qhSVT": {},
+  "File-7ysYy": {}
 }
 
-# Initialize session state
-def initialize_session():
-    if "session_id" not in st.session_state:
-        st.session_state.session_id = str(uuid.uuid4())
-    if "messages" not in st.session_state:
-        st.session_state.messages = []  # Store chat history (user and assistant messages)
-    if "file_path" not in st.session_state:
-        st.session_state.file_path = None
+def run_flow(message: str,
+  endpoint: str,
+  output_type: str = "chat",
+  input_type: str = "chat",
+  tweaks: Optional[dict] = None,
+  api_key: Optional[str] = None) -> dict:
+    """
+    Run a flow with a given message and optional tweaks.
+
+    :param message: The message to send to the flow
+    :param endpoint: The ID or the endpoint name of the flow
+    :param tweaks: Optional tweaks to customize the flow
+    :return: The JSON response from the flow
+    """
+    api_url = f"{BASE_API_URL}/api/v1/run/{endpoint}"
+
+    payload = {
+        "input_value": message,
+        "output_type": output_type,
+        "input_type": input_type,
+    }
+    headers = None
+    if tweaks:
+        payload["tweaks"] = tweaks
+    if api_key:
+        headers = {"x-api-key": api_key}
+    response = requests.post(api_url, json=payload, headers=headers)
+    return response.json()
+
+def chat(prompt: str):
+  with current_chat_message:
+    # Block input to prevent sending messages whilst AI is responding
+    st.session_state.disabled = True
+
+    # Add user message to chat history
+    st.session_state.messages.append(("human", prompt))
+
+    # Display user message in chat message container
+    with st.chat_message("human"):
+      st.markdown(prompt)
+
+    # Display assistant response in chat message container
+    with st.chat_message("ai"):
+      # Get complete chat history, including latest question as last message
+      history = "\n".join(
+        [f"{role}: {msg}" for role, msg in st.session_state.messages]
+      )
+
+      query = f"{history}\nAI:"
+
+      # Setup any tweaks you want to apply to the flow
+      inputs = {"question": query}
+
+      # output = run_flow(inputs, flow_id=FLOW_ID, tweaks=TWEAKS)
+      flow = run_flow_from_json(flow="./LangRAG.json", input_value=inputs, tweaks=TWEAKS)
+      output = flow(inputs)
+      print("output from the model is: ")
+      print(output)
+      try:
+        output = output['chat_history'][-1].content
+      except Exception :
+        output = f"Application error : {output}"
+
+      placeholder = st.empty()
+
+      # write response without "▌" to indicate completed message.
+      with placeholder:
+        st.markdown(output)
+
+    # Log AI response to chat history
+    st.session_state.messages.append(("ai", output))
+    # Unblock chat input
+    st.session_state.disabled = False
+
+    st.rerun()
 
 
-# Save uploaded file and return its path
-def save_uploaded_file(uploaded_file):
-    temp_dir = "./tmp"
-    os.makedirs(temp_dir, exist_ok=True)
-    temp_file_path = os.path.join(temp_dir, uploaded_file.name)
-    with open(temp_file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return temp_file_path
+st.set_page_config(page_title="AI for AI")
+st.title("Chat RAG")
+
+system_prompt = "You´re a helpful assistant who can explain concepts"
+if "messages" not in st.session_state:
+    st.session_state.messages = [("system", system_prompt)]
+if "disabled" not in st.session_state:
+    # `disable` flag to prevent user from sending messages whilst the AI is responding
+    st.session_state.disabled = False
 
 
-# Display chat history
-def display_chat_history():
-    st.markdown("### Chat History")
-    for role, message in st.session_state.messages:
-        if role == "user":
-            st.markdown(f"**You:** {message}")
-        else:
-            st.markdown(f"**Assistant:** {message}")
+with st.chat_message("ai"):
+  st.markdown(
+    f"Hi! I'm your AI assistant."
+  )
 
+# Display chat messages from history on app rerun
+for role, message in st.session_state.messages:
+    if role == "system":
+        continue
+    with st.chat_message(role):
+        st.markdown(message)
 
-# Process user input with LangFlow
-def process_user_input(user_input):
-    # Update TWEAKS with user input and session information
-    TWEAKS["ChatInput-6Lgre"]["input_value"] = user_input
-    TWEAKS["ChatInput-6Lgre"]["session_id"] = st.session_state.session_id
-    TWEAKS["ChatOutput-UJU7A"]["session_id"] = st.session_state.session_id
-    TWEAKS["File-7ysYy"]["session_id"] = st.session_state.session_id
+current_chat_message = st.container()
+prompt = st.chat_input("Ask your question here...", disabled=st.session_state.disabled)
 
-    # Ensure a file is linked before processing
-    if not st.session_state.file_path:
-        st.warning("Please upload a file before asking a question.")
-        return
+if prompt:
+    chat(prompt)
 
-    TWEAKS["File-7ysYy"]["path"] = st.session_state.file_path
-
-    try:
-        # Run LangFlow process
-        result = run_flow_from_json(
-            flow="./LangRAG.json", input_value=user_input, tweaks=TWEAKS
-        )
-
-        # Extract and display the assistant's response
-        if "ChatOutput-UJU7A" in result:
-            response = result["ChatOutput-UJU7A"]["data_template"].format(
-                text=result["ChatOutput-UJU7A"]["input_value"]
-            )
-        else:
-            response = "Sorry, I couldn't generate an answer."
-
-        # Add assistant's response to chat history
-        st.session_state.messages.append(("assistant", response))
-        st.write(f"**Assistant:** {response}")
-
-    except Exception as e:
-        st.error(f"Error occurred: {str(e)}")
-
-
-# Main Streamlit app
-initialize_session()
-
-st.title("LangFlow Chatbot with Chat History and File Upload")
-st.write("Welcome! Upload a file to add context, then ask your question.")
-
-# File upload section
-uploaded_file = st.file_uploader(
-    "Upload a file to include in the chatbot context:", type=["txt", "pdf", "docx"]
-)
-
-if uploaded_file:
-    st.session_state.file_path = save_uploaded_file(uploaded_file)
-    st.success(f"File '{uploaded_file.name}' uploaded successfully!")
-
-# Display chat history
-display_chat_history()
-
-# Input box for user queries
-user_input = st.text_input("You:", "")
-
-if user_input:
-    # Add user input to chat history
-    st.session_state.messages.append(("user", user_input))
-    # Process the user input
-    process_user_input(user_input)
-
-# Cleanup logic (optional): Delete temporary files
-if st.button("Clear Chat"):
-    st.session_state.messages = []
-    st.write("Chat history cleared.")
-
-if st.button("Delete Uploaded File"):
-    if st.session_state.file_path:
-        os.remove(st.session_state.file_path)
-        st.session_state.file_path = None
-        st.write("Uploaded file deleted.")
-    else:
-        st.warning("No file to delete.")
