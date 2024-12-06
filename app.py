@@ -1,5 +1,4 @@
 import streamlit as st
-import requests
 from langflow.load import run_flow_from_json
 from typing import Optional
 
@@ -20,7 +19,7 @@ TWEAKS = {
     "File-7ysYy": {}
 }
 
-
+BASE_API_URL = "http://your-api-url-here"  # Define your base API URL
 
 def run_flow(message: str,
              endpoint: str,
@@ -76,8 +75,8 @@ def chat(prompt: str):
             history = "\n".join([f"{role}: {msg}" for role, msg in st.session_state.messages])
             query = f"{history}\nAI:"
 
-            # Prepare inputs for the flow
-            inputs = {"question": query}
+            # Pass the query as a string (not a dictionary)
+            inputs = query  # Directly pass the query as the input_value
 
             # Call the LangFlow API and retrieve the response
             try:
